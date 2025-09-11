@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pianificatore di Pasti Intelligente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome per le icone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .nav-button {
+            @apply flex-1 py-3 px-4 text-center rounded-lg font-semibold transition-colors duration-200 cursor-pointer;
+        }
+        .nav-button.active {
+            @apply bg-blue-500 text-white shadow-lg;
+        }
+        .nav-button.inactive {
+            @apply text-gray-600 hover:bg-gray-200;
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .button-primary {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+        .button-primary:hover {
+            background-color: #2563eb;
+            box-shadow: 0 6px 8px rgba(37, 99, 235, 0.4);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .ingredient-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #f9fafb;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .input-group {
+            @apply flex flex-col sm:flex-row gap-4 mb-4;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8">
+
+    <div class="container mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-3xl sm:text-5xl font-extrabold text-gray-800 leading-tight">Il tuo Pianificatore di Pasti Intelligente</h1>
+            <p class="mt-4 text-base sm:text-lg text-gray-600">Pianifica la settimana, riduci gli sprechi, risparmia tempo e denaro.</p>
+        </div>
+
+        <!-- Menu di Navigazione -->
+        <nav class="flex justify-around bg-white rounded-xl p-2 shadow-lg mb-8">
+            <button id="nav-pianifica" class="nav-button active" onclick="showSection('pianifica')">
+                <i class="fas fa-calendar-alt mr-2"></i> Pianifica
+            </button>
+            <button id="nav-ricette" class="nav-button inactive" onclick="showSection('ricette')">
+                <i class="fas fa-utensils mr-2"></i> Ricette
+            </button>
+            <button id="nav-spesa" class="nav-button inactive" onclick="showSection('spesa')">
+                <i class="fas fa-shopping-cart mr-2"></i> Lista Spesa
+            </button>
+            <button id="nav-dispensa" class="nav-button inactive" onclick="showSection('dispensa')">
+                <i class="fas fa-box-open mr-2"></i> Dispensa
+            </button>
+        </nav>
+
+        <!-- Sezioni dell'App -->
+        
+        <!-- Sezione Pianifica Pasti -->
+        <div id="pianifica-section" class="section active">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Pianifica Pasti</h2>
+            <div id="mealPlanContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- I giorni della settimana verranno generati qui -->
+            </div>
+            <div class="mt-8 text-center">
+                <button id="generateShoppingListBtn" class="button-primary">
+                    <i class="fas fa-shopping-bag mr-2"></i> Genera Lista Spesa
+                </button>
+            </div>
+        </div>
+
+        <!-- Sezione Ricette -->
+        <div id="ricette-section" class="section">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Le mie Ricette</h2>
+            <div class="card p-6 mb-6">
+                <h3 class="text-xl font-bold mb-4">Aggiungi una nuova Ricetta</h3>
+                <div class="mb-4">
+                    <input type="text" id="recipeNameInput" placeholder="Nome ricetta" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <input type="number" id="recipeCaloriesInput" placeholder="Calorie" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <h4 class="font-semibold mb-2">Ingredienti</h4>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="recipeIngredientName" placeholder="Nome ingrediente" class="flex-1 p-2 rounded-lg border border-gray-300">
+                        <input type="number" id="recipeIngredientQuantity" placeholder="Quantità" class="w-1/4 p-2 rounded-lg border border-gray-300">
+                        <select id="recipeIngredientUnit" class="w-1/4 p-2 rounded-lg border border-gray-300">
+                            <option value="g">g</option>
+                            <option value="ml">ml</option>
+                            <option value="pezzi">pezzi</option>
+                        </select>
+                        <button onclick="addIngredientToRecipe()" class="bg-blue-200 text-blue-800 py-1 px-3 rounded-lg hover:bg-blue-300 transition duration-200">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <ul id="newRecipeIngredientsList" class="text-sm text-gray-600 pl-4 list-disc list-inside"></ul>
+                </div>
+                <button onclick="addRecipe()" class="button-primary w-full">
+                    <i class="fas fa-save mr-2"></i> Salva Ricetta
+                </button>
+            </div>
+            <div id="allRecipesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Le ricette verranno caricate qui da JS -->
+            </div>
+        </div>
+
+        <!-- Sezione Lista Spesa -->
+        <div id="spesa-section" class="section">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Lista della Spesa</h2>
+            <div class="card p-6 mb-6">
+                <h3 class="text-xl font-bold mb-4">Aggiungi un Prodotto</h3>
+                <div class="input-group">
+                    <input type="text" id="shoppingItemNameInput" placeholder="Nome prodotto" class="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button onclick="addShoppingItem()" class="button-primary">
+                        <i class="fas fa-plus mr-2"></i> Aggiungi
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 card">
+                <ul id="shoppingList" class="list-disc list-inside">
+                    <!-- La lista della spesa verrà generata qui -->
+                </ul>
+                <div class="mt-6 flex justify-end">
+                    <button id="copyShoppingListBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg">
+                        <i class="fas fa-copy mr-2"></i> Copia negli Appunti
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione Dispensa -->
+        <div id="dispensa-section" class="section">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">La tua Dispensa</h2>
+            <div class="card p-6">
+                <div class="input-group">
+                    <input type="text" id="ingredientNameInput" placeholder="Nome ingrediente" class="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div class="flex gap-2 w-full sm:w-1/2">
+                        <input type="number" id="ingredientQuantityInput" placeholder="Quantità" class="w-2/3 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="ingredientUnitInput" class="w-1/3 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="pezzi">Pezzi</option>
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="l">l</option>
+                            <option value="ml">ml</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <input type="text" id="ingredientTypeInput" placeholder="Categoria (es. Pasta, Verdura)" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button onclick="addIngredient()" class="button-primary w-full">
+                    <i class="fas fa-plus mr-2"></i> Aggiungi Ingrediente
+                </button>
+            </div>
+            
+            <div class="mt-6 card p-6">
+                <h3 class="text-xl font-bold mb-4">I tuoi ingredienti</h3>
+                <div id="pantryList">
+                    <!-- Gli ingredienti verranno visualizzati qui -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale per la selezione delle ricette -->
+    <div id="recipeModal" class="modal">
+        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-11/12 md:w-3/4 lg:w-1/2">
+            <h3 class="text-2xl font-bold mb-4">Seleziona una Ricetta</h3>
+            <div id="selectRecipesList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                <!-- Le ricette verranno caricate qui -->
+            </div>
+            <div class="text-right mt-6">
+                <button onclick="hideModal('recipeModal')" class="px-4 py-2 bg-red-500 text-white rounded-lg">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Carica dati da localStorage o inizializza
+        let recipes = JSON.parse(localStorage.getItem('recipes')) || [];
+        let pantry = JSON.parse(localStorage.getItem('pantry')) || [];
+        let shoppingListItems = JSON.parse(localStorage.getItem('shoppingListItems')) || [];
+
+        const daysOfWeek = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+        const mealPlan = JSON.parse(localStorage.getItem('mealPlan')) || daysOfWeek.reduce((acc, day) => ({ ...acc, [day]: null }), {});
+
+        let currentDayToAssign = '';
+        let newRecipeIngredients = [];
+
+        // Funzioni per gestire la navigazione
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.getElementById(sectionId + '-section').classList.add('active');
+            document.querySelectorAll('.nav-button').forEach(button => button.classList.remove('active'));
+            document.getElementById('nav-' + sectionId).classList.add('active');
+            
+            if (sectionId === 'ricette') {
+                renderAllRecipes();
+            } else if (sectionId === 'spesa') {
+                renderShoppingList();
+            } else if (sectionId === 'dispensa') {
+                renderPantry();
+            }
+        }
+
+        // Funzione per mostrare e nascondere i modali
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Funzione per generare il piano pasti sulla UI
+        function renderMealPlan() {
+            const container = document.getElementById('mealPlanContainer');
+            container.innerHTML = '';
+            daysOfWeek.forEach(day => {
+                const recipe = mealPlan[day];
+                const card = document.createElement('div');
+                card.className = 'card cursor-pointer hover:bg-gray-50';
+                card.innerHTML = `
+                    <h2 class="text-lg font-bold text-gray-800 mb-2">${day}</h2>
+                    <div class="bg-gray-100 rounded-lg p-3 text-center transition-colors duration-200">
+                        ${recipe ? `
+                            <p class="text-gray-500 font-medium italic">${recipe.nome}</p>
+                            <p class="text-sm text-gray-400 mt-1">${recipe.calorie} Calorie</p>
+                            <button onclick="removeMeal('${day}', event)" class="mt-2 text-xs text-red-500 hover:text-red-700 font-semibold">Rimuovi</button>
+                        ` : `
+                            <button onclick="addMeal('${day}', event)" class="text-blue-500 hover:text-blue-700 font-semibold text-sm">
+                                <i class="fas fa-plus mr-1"></i> Aggiungi Pasto
+                            </button>
+                        `}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            localStorage.setItem('mealPlan', JSON.stringify(mealPlan));
+        }
+        
+        // Funzione per rimuovere un pasto
+        function removeMeal(day, event) {
+            event.stopPropagation();
+            mealPlan[day] = null;
+            renderMealPlan();
+        }
+
+        // Funzione per aggiungere un pasto
+        function addMeal(day, event) {
+            event.stopPropagation();
+            currentDayToAssign = day;
+            renderSelectableRecipes();
+            showModal('recipeModal');
+        }
+
+        // Sezione Ricette
+        function addIngredientToRecipe() {
+            const name = document.getElementById('recipeIngredientName').value.trim();
+            const quantity = parseFloat(document.getElementById('recipeIngredientQuantity').value);
+            const unit = document.getElementById('recipeIngredientUnit').value;
+
+            if (name && !isNaN(quantity) && quantity > 0) {
+                newRecipeIngredients.push({ nome: name, quantita: quantity, unita: unit });
+                document.getElementById('recipeIngredientName').value = '';
+                document.getElementById('recipeIngredientQuantity').value = '';
+                renderNewRecipeIngredientsList();
+            }
+        }
+
+        function renderNewRecipeIngredientsList() {
+            const list = document.getElementById('newRecipeIngredientsList');
+            list.innerHTML = '';
+            newRecipeIngredients.forEach(ing => {
+                const li = document.createElement('li');
+                li.textContent = `${ing.nome} (${ing.quantita}${ing.unita})`;
+                list.appendChild(li);
+            });
+        }
+
+        function addRecipe() {
+            const name = document.getElementById('recipeNameInput').value.trim();
+            const calories = parseFloat(document.getElementById('recipeCaloriesInput').value);
+
+            if (name && !isNaN(calories) && newRecipeIngredients.length > 0) {
+                const newRecipe = {
+                    id: recipes.length + 1,
+                    nome: name,
+                    ingredienti: newRecipeIngredients,
+                    calorie: calories
+                };
+                recipes.push(newRecipe);
+                localStorage.setItem('recipes', JSON.stringify(recipes));
+                // Resetta il form
+                document.getElementById('recipeNameInput').value = '';
+                document.getElementById('recipeCaloriesInput').value = '';
+                newRecipeIngredients = [];
+                renderNewRecipeIngredientsList();
+                renderAllRecipes();
+            } else {
+                // Aggiungi un feedback per l'utente, ad esempio un alert o un messaggio nell'interfaccia
+                console.error("Dati ricetta non validi.");
+            }
+        }
+
+        function renderAllRecipes() {
+            const container = document.getElementById('allRecipesList');
+            container.innerHTML = '';
+            if (recipes.length === 0) {
+                container.innerHTML = `<p class="text-gray-500 italic text-center">Nessuna ricetta salvata. Aggiungi la tua prima ricetta!</p>`;
+                return;
+            }
+            recipes.forEach(recipe => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                const ingredientsHtml = recipe.ingredienti.map(ing => `
+                    <li class="text-sm text-gray-400">- ${ing.nome} (${ing.quantita}${ing.unita})</li>
+                `).join('');
+                card.innerHTML = `
+                    <h4 class="font-bold text-lg">${recipe.nome}</h4>
+                    <p class="text-sm text-gray-500 mt-1">${recipe.calorie} Calorie</p>
+                    <p class="text-sm text-gray-400 mt-2">Ingredienti:</p>
+                    <ul class="list-none pl-4">${ingredientsHtml}</ul>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Funzione per mostrare le ricette selezionabili nel modale
+        function renderSelectableRecipes() {
+            const recipesList = document.getElementById('selectRecipesList');
+            recipesList.innerHTML = '';
+            if (recipes.length === 0) {
+                recipesList.innerHTML = `<p class="text-gray-500 italic text-center col-span-2">Aggiungi ricette nella sezione 'Ricette' per vederle qui.</p>`;
+                return;
+            }
+            recipes.forEach(recipe => {
+                const recipeItem = document.createElement('div');
+                recipeItem.className = 'bg-white rounded-lg p-4 shadow-md border-2 border-transparent hover:border-blue-500 transition duration-200 cursor-pointer';
+                const ingredientsHtml = recipe.ingredienti.map(ing => ing.nome).join(', ');
+                recipeItem.innerHTML = `
+                    <h4 class="font-bold text-lg">${recipe.nome}</h4>
+                    <p class="text-sm text-gray-500 mt-1">${recipe.calorie} Calorie</p>
+                    <p class="text-sm text-gray-400 mt-2">Ingredienti: ${ingredientsHtml}</p>
+                `;
+                recipeItem.onclick = () => {
+                    mealPlan[currentDayToAssign] = recipe;
+                    renderMealPlan();
+                    hideModal('recipeModal');
+                };
+                recipesList.appendChild(recipeItem);
+            });
+        }
+
+        // Sezione Lista Spesa
+        function addShoppingItem() {
+            const itemName = document.getElementById('shoppingItemNameInput').value.trim();
+            if (itemName) {
+                shoppingListItems.push(itemName);
+                localStorage.setItem('shoppingListItems', JSON.stringify(shoppingListItems));
+                document.getElementById('shoppingItemNameInput').value = '';
+                renderShoppingList();
+            }
+        }
+
+        function renderShoppingList() {
+            const shoppingListUl = document.getElementById('shoppingList');
+            shoppingListUl.innerHTML = '';
+            if (shoppingListItems.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'La tua lista della spesa è vuota. Aggiungi prodotti qui o genera la lista dal piano pasti.';
+                li.className = 'text-gray-500 italic';
+                shoppingListUl.appendChild(li);
+                return;
+            }
+            shoppingListItems.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'text-gray-800 font-medium flex justify-between items-center';
+                li.innerHTML = `
+                    <span>${item}</span>
+                    <button onclick="removeShoppingItem(${index})" class="text-red-500 hover:text-red-700 transition duration-200 text-sm">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                shoppingListUl.appendChild(li);
+            });
+        }
+
+        function removeShoppingItem(index) {
+            shoppingListItems.splice(index, 1);
+            localStorage.setItem('shoppingListItems', JSON.stringify(shoppingListItems));
+            renderShoppingList();
+        }
+
+        // Funzione per generare la lista della spesa automaticamente
+        document.getElementById('generateShoppingListBtn').addEventListener('click', () => {
+            const planIngredients = {};
+            for (const day in mealPlan) {
+                const recipe = mealPlan[day];
+                if (recipe) {
+                    recipe.ingredienti.forEach(ing => {
+                        const key = `${ing.nome}|${ing.unita}`;
+                        if (!planIngredients[key]) {
+                            planIngredients[key] = { ...ing, quantita: 0 };
+                        }
+                        planIngredients[key].quantita += ing.quantita;
+                    });
+                }
+            }
+            
+            pantry.forEach(ing => {
+                const key = `${ing.nome}|${ing.unita}`;
+                if (planIngredients[key]) {
+                    planIngredients[key].quantita -= ing.quantita;
+                    if (planIngredients[key].quantita <= 0) {
+                        delete planIngredients[key];
+                    }
+                }
+            });
+
+            shoppingListItems = shoppingListItems.concat(Object.values(planIngredients).map(ing => `${ing.nome} (${ing.quantita}${ing.unita})`));
+            localStorage.setItem('shoppingListItems', JSON.stringify(shoppingListItems));
+            showSection('spesa');
+        });
+
+        // Funzione per copiare la lista della spesa
+        document.getElementById('copyShoppingListBtn').addEventListener('click', () => {
+            const shoppingListItems = document.querySelectorAll('#shoppingList li span');
+            let listText = '';
+            shoppingListItems.forEach(item => {
+                listText += item.textContent + '\n';
+            });
+            navigator.clipboard.writeText(listText).then(() => {
+                alert('Lista della spesa copiata negli appunti!');
+            }).catch(err => {
+                console.error('Errore durante la copia: ', err);
+            });
+        });
+
+        // Sezione Dispensa
+        function addIngredient() {
+            const name = document.getElementById('ingredientNameInput').value.trim();
+            const quantity = parseFloat(document.getElementById('ingredientQuantityInput').value);
+            const unit = document.getElementById('ingredientUnitInput').value;
+            const type = document.getElementById('ingredientTypeInput').value.trim();
+
+            if (name && !isNaN(quantity) && quantity > 0) {
+                const newIngredient = {
+                    nome: name,
+                    quantita: quantity,
+                    unita: unit,
+                    tipo: type
+                };
+                pantry.push(newIngredient);
+                localStorage.setItem('pantry', JSON.stringify(pantry));
+                renderPantry();
+                // Pulisci i campi
+                document.getElementById('ingredientNameInput').value = '';
+                document.getElementById('ingredientQuantityInput').value = '';
+                document.getElementById('ingredientTypeInput').value = '';
+            }
+        }
+
+        function removeIngredient(index) {
+            pantry.splice(index, 1);
+            localStorage.setItem('pantry', JSON.stringify(pantry));
+            renderPantry();
+        }
+
+        function renderPantry() {
+            const pantryList = document.getElementById('pantryList');
+            pantryList.innerHTML = '';
+            if (pantry.length === 0) {
+                pantryList.innerHTML = `<p class="text-gray-500 italic text-center">La tua dispensa è vuota. Aggiungi qui i tuoi ingredienti.</p>`;
+                return;
+            }
+            pantry.forEach((ingredient, index) => {
+                const item = document.createElement('div');
+                item.className = 'ingredient-item';
+                item.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${ingredient.nome}</p>
+                        <p class="text-sm text-gray-500">${ingredient.tipo ? `${ingredient.tipo} | ` : ''}${ingredient.quantita}${ingredient.unita}</p>
+                    </div>
+                    <button onclick="removeIngredient(${index})" class="text-red-500 hover:text-red-700 transition duration-200">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                pantryList.appendChild(item);
+            });
+        }
+        
+        // Inizializza l'interfaccia quando la pagina è caricata
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMealPlan();
+            renderPantry();
+        });
+    </script>
+</body>
+</html>
+
