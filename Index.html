@@ -3,551 +3,766 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pianificatore di Pasti Intelligente</title>
+    <title>EvoFit</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome per le icone -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #0c0c0c;
+            color: #e0e0e0;
         }
-        .container {
-            max-width: 800px;
+        .container-main {
+            background-color: #1a1a1a;
+            border: 1px solid #282828;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
-        .nav-button {
-            @apply flex-1 py-3 px-4 text-center rounded-lg font-semibold transition-colors duration-200 cursor-pointer;
+        .text-accent {
+            color: #8A2BE2; /* Viola */
         }
-        .nav-button.active {
-            @apply bg-blue-500 text-white shadow-lg;
-        }
-        .nav-button.inactive {
-            @apply text-gray-600 hover:bg-gray-200;
-        }
-        .section {
-            display: none;
-        }
-        .section.active {
-            display: block;
-        }
-        .card {
-            background-color: #fff;
-            border-radius: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            transition: transform 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        .button-primary {
-            background-color: #3b82f6;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 9999px;
-            font-weight: 600;
-            transition: background-color 0.3s, box-shadow 0.3s;
-            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
-        }
-        .button-primary:hover {
-            background-color: #2563eb;
-            box-shadow: 0 6px 8px rgba(37, 99, 235, 0.4);
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-            justify-content: center;
-            align-items: center;
-        }
-        .ingredient-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #f9fafb;
-            padding: 0.5rem 1rem;
-            border-radius: 1rem;
-            margin-bottom: 0.5rem;
+        .bg-accent {
+            background-color: #8A2BE2;
         }
         .input-group {
-            @apply flex flex-col sm:flex-row gap-4 mb-4;
+            position: relative;
+        }
+        .input-group input, .input-group select, .input-group textarea {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            padding: 1rem 1.5rem;
+            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+            color: #e0e0e0;
+            width: 100%;
+        }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #8A2BE2;
+            box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+        }
+        .input-group input::placeholder, .input-group textarea::placeholder {
+            color: transparent;
+        }
+        .input-group label {
+            position: absolute;
+            top: 1.2rem;
+            left: 1.5rem;
+            color: #888;
+            pointer-events: none;
+            transition: all 0.2s ease-out;
+        }
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label,
+        .input-group textarea:focus + label,
+        .input-group textarea:not(:placeholder-shown) + label {
+            top: -0.5rem;
+            left: 1rem;
+            font-size: 0.75rem;
+            color: #8A2BE2;
+            background-color: #1a1a1a;
+            padding: 0 0.5rem;
+        }
+        .input-group select:valid + label,
+        .input-group select:focus + label {
+             top: -0.5rem;
+             left: 1rem;
+             font-size: 0.75rem;
+             color: #8A2BE2;
+             background-color: #1a1a1a;
+             padding: 0 0.5rem;
+        }
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 80%;
+            max-width: 300px;
+            background-color: #111;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 50;
+        }
+        .drawer.open {
+            transform: translateX(0);
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .btn {
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+        }
+        .page-section {
+            display: none;
+        }
+        .page-section.active {
+            display: block;
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8">
-
-    <div class="container mx-auto">
-        <!-- Header -->
-        <div class="text-center mb-10">
-            <h1 class="text-3xl sm:text-5xl font-extrabold text-gray-800 leading-tight">Il tuo Pianificatore di Pasti Intelligente</h1>
-            <p class="mt-4 text-base sm:text-lg text-gray-600">Pianifica la settimana, riduci gli sprechi, risparmia tempo e denaro.</p>
-        </div>
-
-        <!-- Menu di Navigazione -->
-        <nav class="flex justify-around bg-white rounded-xl p-2 shadow-lg mb-8">
-            <button id="nav-pianifica" class="nav-button active" onclick="showSection('pianifica')">
-                <i class="fas fa-calendar-alt mr-2"></i> Pianifica
-            </button>
-            <button id="nav-ricette" class="nav-button inactive" onclick="showSection('ricette')">
-                <i class="fas fa-utensils mr-2"></i> Ricette
-            </button>
-            <button id="nav-spesa" class="nav-button inactive" onclick="showSection('spesa')">
-                <i class="fas fa-shopping-cart mr-2"></i> Lista Spesa
-            </button>
-            <button id="nav-dispensa" class="nav-button inactive" onclick="showSection('dispensa')">
-                <i class="fas fa-box-open mr-2"></i> Dispensa
-            </button>
-        </nav>
-
-        <!-- Sezioni dell'App -->
-        
-        <!-- Sezione Pianifica Pasti -->
-        <div id="pianifica-section" class="section active">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Pianifica Pasti</h2>
-            <div id="mealPlanContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- I giorni della settimana verranno generati qui -->
-            </div>
-            <div class="mt-8 text-center">
-                <button id="generateShoppingListBtn" class="button-primary">
-                    <i class="fas fa-shopping-bag mr-2"></i> Genera Lista Spesa
-                </button>
-            </div>
-        </div>
-
-        <!-- Sezione Ricette -->
-        <div id="ricette-section" class="section">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Le mie Ricette</h2>
-            <div class="card p-6 mb-6">
-                <h3 class="text-xl font-bold mb-4">Aggiungi una nuova Ricetta</h3>
-                <div class="mb-4">
-                    <input type="text" id="recipeNameInput" placeholder="Nome ricetta" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <input type="number" id="recipeCaloriesInput" placeholder="Calorie" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <h4 class="font-semibold mb-2">Ingredienti</h4>
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" id="recipeIngredientName" placeholder="Nome ingrediente" class="flex-1 p-2 rounded-lg border border-gray-300">
-                        <input type="number" id="recipeIngredientQuantity" placeholder="Quantità" class="w-1/4 p-2 rounded-lg border border-gray-300">
-                        <select id="recipeIngredientUnit" class="w-1/4 p-2 rounded-lg border border-gray-300">
-                            <option value="g">g</option>
-                            <option value="ml">ml</option>
-                            <option value="pezzi">pezzi</option>
-                        </select>
-                        <button onclick="addIngredientToRecipe()" class="bg-blue-200 text-blue-800 py-1 px-3 rounded-lg hover:bg-blue-300 transition duration-200">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <ul id="newRecipeIngredientsList" class="text-sm text-gray-600 pl-4 list-disc list-inside"></ul>
-                </div>
-                <button onclick="addRecipe()" class="button-primary w-full">
-                    <i class="fas fa-save mr-2"></i> Salva Ricetta
-                </button>
-            </div>
-            <div id="allRecipesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Le ricette verranno caricate qui da JS -->
-            </div>
-        </div>
-
-        <!-- Sezione Lista Spesa -->
-        <div id="spesa-section" class="section">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Lista della Spesa</h2>
-            <div class="card p-6 mb-6">
-                <h3 class="text-xl font-bold mb-4">Aggiungi un Prodotto</h3>
-                <div class="input-group">
-                    <input type="text" id="shoppingItemNameInput" placeholder="Nome prodotto" class="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button onclick="addShoppingItem()" class="button-primary">
-                        <i class="fas fa-plus mr-2"></i> Aggiungi
-                    </button>
-                </div>
-            </div>
-            <div class="p-6 card">
-                <ul id="shoppingList" class="list-disc list-inside">
-                    <!-- La lista della spesa verrà generata qui -->
-                </ul>
-                <div class="mt-6 flex justify-end">
-                    <button id="copyShoppingListBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg">
-                        <i class="fas fa-copy mr-2"></i> Copia negli Appunti
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sezione Dispensa -->
-        <div id="dispensa-section" class="section">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">La tua Dispensa</h2>
-            <div class="card p-6">
-                <div class="input-group">
-                    <input type="text" id="ingredientNameInput" placeholder="Nome ingrediente" class="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <div class="flex gap-2 w-full sm:w-1/2">
-                        <input type="number" id="ingredientQuantityInput" placeholder="Quantità" class="w-2/3 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <select id="ingredientUnitInput" class="w-1/3 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="pezzi">Pezzi</option>
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                            <option value="l">l</option>
-                            <option value="ml">ml</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <input type="text" id="ingredientTypeInput" placeholder="Categoria (es. Pasta, Verdura)" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <button onclick="addIngredient()" class="button-primary w-full">
-                    <i class="fas fa-plus mr-2"></i> Aggiungi Ingrediente
-                </button>
-            </div>
-            
-            <div class="mt-6 card p-6">
-                <h3 class="text-xl font-bold mb-4">I tuoi ingredienti</h3>
-                <div id="pantryList">
-                    <!-- Gli ingredienti verranno visualizzati qui -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modale per la selezione delle ricette -->
-    <div id="recipeModal" class="modal">
-        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-11/12 md:w-3/4 lg:w-1/2">
-            <h3 class="text-2xl font-bold mb-4">Seleziona una Ricetta</h3>
-            <div id="selectRecipesList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                <!-- Le ricette verranno caricate qui -->
-            </div>
-            <div class="text-right mt-6">
-                <button onclick="hideModal('recipeModal')" class="px-4 py-2 bg-red-500 text-white rounded-lg">Chiudi</button>
-            </div>
-        </div>
-    </div>
-
+<body class="overflow-x-hidden">
+    <!-- Script per inizializzare lo stato del drawer -->
     <script>
-        // Carica dati da localStorage o inizializza
-        let recipes = JSON.parse(localStorage.getItem('recipes')) || [];
-        let pantry = JSON.parse(localStorage.getItem('pantry')) || [];
-        let shoppingListItems = JSON.parse(localStorage.getItem('shoppingListItems')) || [];
+        document.addEventListener('DOMContentLoaded', () => {
+            const drawer = document.getElementById('drawer');
+            drawer.classList.remove('open');
+            drawer.classList.add('hidden');
+            document.getElementById('profile-section').classList.add('active');
+        });
+    </script>
+    <!-- Firestore Configuration & Auth -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const daysOfWeek = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-        const mealPlan = JSON.parse(localStorage.getItem('mealPlan')) || daysOfWeek.reduce((acc, day) => ({ ...acc, [day]: null }), {});
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        let currentDayToAssign = '';
-        let newRecipeIngredients = [];
+        let db, auth;
+        let userId = null;
+        let exerciseCharts = {};
+        let allWorkouts = [];
 
-        // Funzioni per gestire la navigazione
-        function showSection(sectionId) {
-            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
-            document.getElementById(sectionId + '-section').classList.add('active');
-            document.querySelectorAll('.nav-button').forEach(button => button.classList.remove('active'));
-            document.getElementById('nav-' + sectionId).classList.add('active');
-            
-            if (sectionId === 'ricette') {
-                renderAllRecipes();
-            } else if (sectionId === 'spesa') {
-                renderShoppingList();
-            } else if (sectionId === 'dispensa') {
-                renderPantry();
-            }
-        }
-
-        // Funzione per mostrare e nascondere i modali
-        function showModal(modalId) {
-            document.getElementById(modalId).style.display = 'flex';
-        }
-
-        function hideModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Funzione per generare il piano pasti sulla UI
-        function renderMealPlan() {
-            const container = document.getElementById('mealPlanContainer');
-            container.innerHTML = '';
-            daysOfWeek.forEach(day => {
-                const recipe = mealPlan[day];
-                const card = document.createElement('div');
-                card.className = 'card cursor-pointer hover:bg-gray-50';
-                card.innerHTML = `
-                    <h2 class="text-lg font-bold text-gray-800 mb-2">${day}</h2>
-                    <div class="bg-gray-100 rounded-lg p-3 text-center transition-colors duration-200">
-                        ${recipe ? `
-                            <p class="text-gray-500 font-medium italic">${recipe.nome}</p>
-                            <p class="text-sm text-gray-400 mt-1">${recipe.calorie} Calorie</p>
-                            <button onclick="removeMeal('${day}', event)" class="mt-2 text-xs text-red-500 hover:text-red-700 font-semibold">Rimuovi</button>
-                        ` : `
-                            <button onclick="addMeal('${day}', event)" class="text-blue-500 hover:text-blue-700 font-semibold text-sm">
-                                <i class="fas fa-plus mr-1"></i> Aggiungi Pasto
-                            </button>
-                        `}
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-            localStorage.setItem('mealPlan', JSON.stringify(mealPlan));
-        }
-        
-        // Funzione per rimuovere un pasto
-        function removeMeal(day, event) {
-            event.stopPropagation();
-            mealPlan[day] = null;
-            renderMealPlan();
-        }
-
-        // Funzione per aggiungere un pasto
-        function addMeal(day, event) {
-            event.stopPropagation();
-            currentDayToAssign = day;
-            renderSelectableRecipes();
-            showModal('recipeModal');
-        }
-
-        // Sezione Ricette
-        function addIngredientToRecipe() {
-            const name = document.getElementById('recipeIngredientName').value.trim();
-            const quantity = parseFloat(document.getElementById('recipeIngredientQuantity').value);
-            const unit = document.getElementById('recipeIngredientUnit').value;
-
-            if (name && !isNaN(quantity) && quantity > 0) {
-                newRecipeIngredients.push({ nome: name, quantita: quantity, unita: unit });
-                document.getElementById('recipeIngredientName').value = '';
-                document.getElementById('recipeIngredientQuantity').value = '';
-                renderNewRecipeIngredientsList();
-            }
-        }
-
-        function renderNewRecipeIngredientsList() {
-            const list = document.getElementById('newRecipeIngredientsList');
-            list.innerHTML = '';
-            newRecipeIngredients.forEach(ing => {
-                const li = document.createElement('li');
-                li.textContent = `${ing.nome} (${ing.quantita}${ing.unita})`;
-                list.appendChild(li);
-            });
-        }
-
-        function addRecipe() {
-            const name = document.getElementById('recipeNameInput').value.trim();
-            const calories = parseFloat(document.getElementById('recipeCaloriesInput').value);
-
-            if (name && !isNaN(calories) && newRecipeIngredients.length > 0) {
-                const newRecipe = {
-                    id: recipes.length + 1,
-                    nome: name,
-                    ingredienti: newRecipeIngredients,
-                    calorie: calories
-                };
-                recipes.push(newRecipe);
-                localStorage.setItem('recipes', JSON.stringify(recipes));
-                // Resetta il form
-                document.getElementById('recipeNameInput').value = '';
-                document.getElementById('recipeCaloriesInput').value = '';
-                newRecipeIngredients = [];
-                renderNewRecipeIngredientsList();
-                renderAllRecipes();
-            } else {
-                // Aggiungi un feedback per l'utente, ad esempio un alert o un messaggio nell'interfaccia
-                console.error("Dati ricetta non validi.");
-            }
-        }
-
-        function renderAllRecipes() {
-            const container = document.getElementById('allRecipesList');
-            container.innerHTML = '';
-            if (recipes.length === 0) {
-                container.innerHTML = `<p class="text-gray-500 italic text-center">Nessuna ricetta salvata. Aggiungi la tua prima ricetta!</p>`;
+        const initFirebase = async () => {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config is not available. Firestore will not be functional.");
                 return;
             }
-            recipes.forEach(recipe => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                const ingredientsHtml = recipe.ingredienti.map(ing => `
-                    <li class="text-sm text-gray-400">- ${ing.nome} (${ing.quantita}${ing.unita})</li>
-                `).join('');
-                card.innerHTML = `
-                    <h4 class="font-bold text-lg">${recipe.nome}</h4>
-                    <p class="text-sm text-gray-500 mt-1">${recipe.calorie} Calorie</p>
-                    <p class="text-sm text-gray-400 mt-2">Ingredienti:</p>
-                    <ul class="list-none pl-4">${ingredientsHtml}</ul>
-                `;
-                container.appendChild(card);
-            });
-        }
+            setLogLevel('debug');
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
 
-        // Funzione per mostrare le ricette selezionabili nel modale
-        function renderSelectableRecipes() {
-            const recipesList = document.getElementById('selectRecipesList');
-            recipesList.innerHTML = '';
-            if (recipes.length === 0) {
-                recipesList.innerHTML = `<p class="text-gray-500 italic text-center col-span-2">Aggiungi ricette nella sezione 'Ricette' per vederle qui.</p>`;
-                return;
-            }
-            recipes.forEach(recipe => {
-                const recipeItem = document.createElement('div');
-                recipeItem.className = 'bg-white rounded-lg p-4 shadow-md border-2 border-transparent hover:border-blue-500 transition duration-200 cursor-pointer';
-                const ingredientsHtml = recipe.ingredienti.map(ing => ing.nome).join(', ');
-                recipeItem.innerHTML = `
-                    <h4 class="font-bold text-lg">${recipe.nome}</h4>
-                    <p class="text-sm text-gray-500 mt-1">${recipe.calorie} Calorie</p>
-                    <p class="text-sm text-gray-400 mt-2">Ingredienti: ${ingredientsHtml}</p>
-                `;
-                recipeItem.onclick = () => {
-                    mealPlan[currentDayToAssign] = recipe;
-                    renderMealPlan();
-                    hideModal('recipeModal');
-                };
-                recipesList.appendChild(recipeItem);
-            });
-        }
-
-        // Sezione Lista Spesa
-        function addShoppingItem() {
-            const itemName = document.getElementById('shoppingItemNameInput').value.trim();
-            if (itemName) {
-                shoppingListItems.push(itemName);
-                localStorage.setItem('shoppingListItems', JSON.stringify(shoppingListItems));
-                document.getElementById('shoppingItemNameInput').value = '';
-                renderShoppingList();
-            }
-        }
-
-        function renderShoppingList() {
-            const shoppingListUl = document.getElementById('shoppingList');
-            shoppingListUl.innerHTML = '';
-            if (shoppingListItems.length === 0) {
-                const li = document.createElement('li');
-                li.textContent = 'La tua lista della spesa è vuota. Aggiungi prodotti qui o genera la lista dal piano pasti.';
-                li.className = 'text-gray-500 italic';
-                shoppingListUl.appendChild(li);
-                return;
-            }
-            shoppingListItems.forEach((item, index) => {
-                const li = document.createElement('li');
-                li.className = 'text-gray-800 font-medium flex justify-between items-center';
-                li.innerHTML = `
-                    <span>${item}</span>
-                    <button onclick="removeShoppingItem(${index})" class="text-red-500 hover:text-red-700 transition duration-200 text-sm">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                `;
-                shoppingListUl.appendChild(li);
-            });
-        }
-
-        function removeShoppingItem(index) {
-            shoppingListItems.splice(index, 1);
-            localStorage.setItem('shoppingListItems', JSON.stringify(shoppingListItems));
-            renderShoppingList();
-        }
-
-        // Funzione per generare la lista della spesa automaticamente
-        document.getElementById('generateShoppingListBtn').addEventListener('click', () => {
-            const planIngredients = {};
-            for (const day in mealPlan) {
-                const recipe = mealPlan[day];
-                if (recipe) {
-                    recipe.ingredienti.forEach(ing => {
-                        const key = `${ing.nome}|${ing.unita}`;
-                        if (!planIngredients[key]) {
-                            planIngredients[key] = { ...ing, quantita: 0 };
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('userIdValue').textContent = userId;
+                    console.log("User authenticated:", userId);
+                    loadProfileData();
+                    loadWorkouts();
+                    loadNutrition();
+                } else {
+                    console.log("User not authenticated, signing in anonymously...");
+                    if (initialAuthToken) {
+                        try {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } catch (error) {
+                            console.error("Custom token sign-in failed:", error);
+                            await signInAnonymously(auth);
                         }
-                        planIngredients[key].quantita += ing.quantita;
-                    });
-                }
-            }
-            
-            pantry.forEach(ing => {
-                const key = `${ing.nome}|${ing.unita}`;
-                if (planIngredients[key]) {
-                    planIngredients[key].quantita -= ing.quantita;
-                    if (planIngredients[key].quantita <= 0) {
-                        delete planIngredients[key];
+                    } else {
+                        await signInAnonymously(auth);
                     }
                 }
             });
+        };
 
-            shoppingListItems = shoppingListItems.concat(Object.values(planIngredients).map(ing => `${ing.nome} (${ing.quantita}${ing.unita})`));
-            localStorage.setItem('shoppingListItems', JSON.stringify(shoppingListItems));
-            showSection('spesa');
-        });
+        const collectionPath = (subCollection) => `/artifacts/${appId}/users/${userId}/${subCollection}`;
 
-        // Funzione per copiare la lista della spesa
-        document.getElementById('copyShoppingListBtn').addEventListener('click', () => {
-            const shoppingListItems = document.querySelectorAll('#shoppingList li span');
-            let listText = '';
-            shoppingListItems.forEach(item => {
-                listText += item.textContent + '\n';
-            });
-            navigator.clipboard.writeText(listText).then(() => {
-                alert('Lista della spesa copiata negli appunti!');
-            }).catch(err => {
-                console.error('Errore durante la copia: ', err);
-            });
-        });
-
-        // Sezione Dispensa
-        function addIngredient() {
-            const name = document.getElementById('ingredientNameInput').value.trim();
-            const quantity = parseFloat(document.getElementById('ingredientQuantityInput').value);
-            const unit = document.getElementById('ingredientUnitInput').value;
-            const type = document.getElementById('ingredientTypeInput').value.trim();
-
-            if (name && !isNaN(quantity) && quantity > 0) {
-                const newIngredient = {
-                    nome: name,
-                    quantita: quantity,
-                    unita: unit,
-                    tipo: type
-                };
-                pantry.push(newIngredient);
-                localStorage.setItem('pantry', JSON.stringify(pantry));
-                renderPantry();
-                // Pulisci i campi
-                document.getElementById('ingredientNameInput').value = '';
-                document.getElementById('ingredientQuantityInput').value = '';
-                document.getElementById('ingredientTypeInput').value = '';
-            }
-        }
-
-        function removeIngredient(index) {
-            pantry.splice(index, 1);
-            localStorage.setItem('pantry', JSON.stringify(pantry));
-            renderPantry();
-        }
-
-        function renderPantry() {
-            const pantryList = document.getElementById('pantryList');
-            pantryList.innerHTML = '';
-            if (pantry.length === 0) {
-                pantryList.innerHTML = `<p class="text-gray-500 italic text-center">La tua dispensa è vuota. Aggiungi qui i tuoi ingredienti.</p>`;
+        // Funzioni per la sezione Profilo
+        const saveProfileData = async () => {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
                 return;
             }
-            pantry.forEach((ingredient, index) => {
-                const item = document.createElement('div');
-                item.className = 'ingredient-item';
-                item.innerHTML = `
-                    <div>
-                        <p class="font-semibold">${ingredient.nome}</p>
-                        <p class="text-sm text-gray-500">${ingredient.tipo ? `${ingredient.tipo} | ` : ''}${ingredient.quantita}${ingredient.unita}</p>
+
+            const nome = document.getElementById('nome').value;
+            const eta = document.getElementById('eta').value;
+            const peso = document.getElementById('peso').value;
+            const altezza = document.getElementById('altezza').value;
+            const sesso = document.getElementById('sesso').value;
+            const obiettivo = document.getElementById('obiettivo').value;
+            const allergie = document.getElementById('allergie').value;
+            const note = document.getElementById('note').value;
+
+            try {
+                const docRef = doc(db, collectionPath('profile'), 'user_profile');
+                await setDoc(docRef, {
+                    nome,
+                    eta: parseInt(eta),
+                    peso: parseFloat(peso),
+                    altezza: parseFloat(altezza),
+                    sesso,
+                    obiettivo,
+                    allergie,
+                    note,
+                    timestamp: new Date()
+                });
+                showMessage("Dati del profilo salvati con successo!", 'success', 'message-box-profile');
+            } catch (e) {
+                console.error("Errore nel salvataggio dei dati del profilo: ", e);
+                showMessage("Errore nel salvataggio dei dati del profilo.", 'error', 'message-box-profile');
+            }
+        };
+
+        const loadProfileData = async () => {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                return;
+            }
+
+            const docRef = doc(db, collectionPath('profile'), 'user_profile');
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('nome').value = data.nome || '';
+                    document.getElementById('eta').value = data.eta || '';
+                    document.getElementById('peso').value = data.peso || '';
+                    document.getElementById('altezza').value = data.altezza || '';
+                    document.getElementById('sesso').value = data.sesso || '';
+                    document.getElementById('obiettivo').value = data.obiettivo || '';
+                    document.getElementById('allergie').value = data.allergie || '';
+                    document.getElementById('note').value = data.note || '';
+                    showMessage("Dati del profilo caricati con successo!", 'success', 'message-box-profile');
+                } else {
+                    showMessage("Nessun dato del profilo trovato. Per favore, inserisci i tuoi dati.", 'info', 'message-box-profile');
+                }
+            }, (error) => {
+                console.error("Errore nel caricamento dei dati del profilo: ", error);
+                showMessage("Errore nel caricamento dei dati del profilo.", 'error', 'message-box-profile');
+            });
+        };
+
+        // Funzioni per la sezione Allenamenti
+        const addWorkout = async () => {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                return;
+            }
+            
+            const exerciseName = document.getElementById('exercise-name').value;
+            const sets = document.getElementById('exercise-sets').value;
+            const reps = document.getElementById('exercise-reps').value;
+            const weight = document.getElementById('exercise-weight').value;
+
+            if (!exerciseName || !sets || !reps || !weight) {
+                showMessage("Per favore, compila tutti i campi dell'allenamento.", 'error', 'message-box-workouts');
+                return;
+            }
+
+            try {
+                const colRef = collection(db, collectionPath('workouts'));
+                await addDoc(colRef, {
+                    exerciseName,
+                    sets: parseInt(sets),
+                    reps: parseInt(reps),
+                    weight: parseFloat(weight),
+                    timestamp: new Date()
+                });
+                showMessage("Allenamento aggiunto con successo!", 'success', 'message-box-workouts');
+                document.getElementById('exercise-name').value = '';
+                document.getElementById('exercise-sets').value = '';
+                document.getElementById('exercise-reps').value = '';
+                document.getElementById('exercise-weight').value = '';
+            } catch (e) {
+                console.error("Errore nell'aggiunta dell'allenamento: ", e);
+                showMessage("Errore nell'aggiunta dell'allenamento.", 'error', 'message-box-workouts');
+            }
+        };
+
+        const deleteWorkout = async (docId) => {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                return;
+            }
+            try {
+                const docRef = doc(db, collectionPath('workouts'), docId);
+                await deleteDoc(docRef);
+                showMessage("Allenamento eliminato con successo!", 'success', 'message-box-workouts');
+            } catch (e) {
+                console.error("Errore nell'eliminazione dell'allenamento: ", e);
+                showMessage("Errore nell'eliminazione dell'allenamento.", 'error', 'message-box-workouts');
+            }
+        };
+
+        const loadWorkouts = async () => {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                return;
+            }
+            
+            const colRef = collection(db, collectionPath('workouts'));
+            onSnapshot(colRef, async (querySnapshot) => {
+                allWorkouts = [];
+                querySnapshot.forEach((doc) => {
+                    allWorkouts.push({ ...doc.data(), id: doc.id });
+                });
+                renderWorkouts(allWorkouts);
+            }, (error) => {
+                console.error("Errore nel caricamento degli allenamenti: ", error);
+                showMessage("Errore nel caricamento degli allenamenti.", 'error', 'message-box-workouts');
+            });
+        };
+
+        const renderWorkouts = (workoutsToRender) => {
+            const workoutsList = document.getElementById('workouts-list');
+            workoutsList.innerHTML = '';
+            exerciseCharts = {}; // Reset charts
+
+            const exercises = {};
+            workoutsToRender.forEach(data => {
+                if (!exercises[data.exerciseName]) {
+                    exercises[data.exerciseName] = [];
+                }
+                exercises[data.exerciseName].push(data);
+            });
+
+            if (Object.keys(exercises).length === 0) {
+                workoutsList.innerHTML = '<p class="text-gray-500 text-center">Nessun allenamento aggiunto ancora.</p>';
+                return;
+            }
+
+            for (const name in exercises) {
+                const exerciseData = exercises[name].sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
+                const dates = exerciseData.map(d => new Date(d.timestamp.toDate()).toLocaleDateString());
+                const weights = exerciseData.map(d => d.weight);
+
+                const workoutItem = document.createElement('div');
+                workoutItem.className = 'p-6 bg-[#2a2a2a] rounded-lg mb-4 shadow-lg';
+                
+                let lastData = exerciseData[exerciseData.length - 1];
+
+                let workoutContent = `<h4 class="font-bold text-lg text-white mb-2">${name}</h4>
+                    <div class="grid grid-cols-2 gap-2 text-gray-400 text-sm mb-4">
+                        <p><strong>Serie:</strong> ${lastData.sets}</p>
+                        <p><strong>Ripetizioni:</strong> ${lastData.reps}</p>
+                        <p><strong>Peso:</strong> ${lastData.weight} kg</p>
                     </div>
-                    <button onclick="removeIngredient(${index})" class="text-red-500 hover:text-red-700 transition duration-200">
-                        <i class="fas fa-trash-alt"></i>
+                    <h5 class="font-semibold text-white mb-2">Progressione del Peso</h5>
+                    <canvas id="chart-${name.replace(/\s/g, '-')}" class="w-full mb-4"></canvas>
+                    <button onclick="deleteWorkout('${lastData.id}')" class="w-full py-2 px-4 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition-colors">
+                        Elimina
                     </button>
                 `;
-                pantryList.appendChild(item);
+
+                workoutItem.innerHTML = workoutContent;
+                workoutsList.appendChild(workoutItem);
+                
+                const ctx = document.getElementById(`chart-${name.replace(/\s/g, '-')}`).getContext('2d');
+                if (exerciseCharts[name]) {
+                    exerciseCharts[name].destroy();
+                }
+                exerciseCharts[name] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Peso (kg)',
+                            data: weights,
+                            borderColor: '#8A2BE2',
+                            backgroundColor: 'rgba(138, 43, 226, 0.2)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#e0e0e0' }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#e0e0e0' }
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        const filterWorkouts = () => {
+            const searchTerm = document.getElementById('search-workouts').value.toLowerCase();
+            const filteredWorkouts = allWorkouts.filter(workout => 
+                workout.exerciseName.toLowerCase().includes(searchTerm)
+            );
+            renderWorkouts(filteredWorkouts);
+        };
+
+        // Funzioni per la sezione Alimentazione
+        const estimateCalories = async () => {
+            const foodName = document.getElementById('food-name').value;
+            const ingredients = document.getElementById('ingredients').value;
+            if (!foodName || !ingredients) {
+                showMessage("Per favore, inserisci il nome del piatto e gli ingredienti.", 'error', 'message-box-nutrition');
+                return;
+            }
+
+            showMessage("Stima delle calorie in corso...", 'info', 'message-box-nutrition');
+            
+            const prompt = `Stima le calorie totali per il seguente piatto con ingredienti e grammature. Rispondi SOLO con un numero, senza testo o unità. Piatto: ${foodName}. Ingredienti: ${ingredients}.`;
+            
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "calories": { "type": "NUMBER" }
+                            }
+                        }
+                    },
+                };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                const parsedJson = JSON.parse(jsonText);
+                const calories = parsedJson?.calories;
+                
+                if (calories && !isNaN(calories)) {
+                    saveNutrition(foodName, ingredients, calories);
+                } else {
+                    showMessage("Impossibile stimare le calorie. Riprova con ingredienti più precisi.", 'error', 'message-box-nutrition');
+                }
+            } catch (e) {
+                console.error("Errore nella stima delle calorie con AI: ", e);
+                showMessage("Errore nella stima delle calorie. Controlla la connessione.", 'error', 'message-box-nutrition');
+            }
+        };
+
+        const saveNutrition = async (foodName, ingredients, calories) => {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                return;
+            }
+            try {
+                const colRef = collection(db, collectionPath('nutrition'));
+                await addDoc(colRef, {
+                    foodName,
+                    ingredients,
+                    calories: parseInt(calories),
+                    timestamp: new Date()
+                });
+                showMessage("Alimento aggiunto con successo!", 'success', 'message-box-nutrition');
+                document.getElementById('food-name').value = '';
+                document.getElementById('ingredients').value = '';
+            } catch (e) {
+                console.error("Errore nel salvataggio dell'alimento: ", e);
+                showMessage("Errore nel salvataggio dell'alimento.", 'error', 'message-box-nutrition');
+            }
+        };
+
+        const deleteNutrition = async (docId) => {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                return;
+            }
+            try {
+                const docRef = doc(db, collectionPath('nutrition'), docId);
+                await deleteDoc(docRef);
+                showMessage("Alimento eliminato con successo!", 'success', 'message-box-nutrition');
+            } catch (e) {
+                console.error("Errore nell'eliminazione dell'alimento: ", e);
+                showMessage("Errore nell'eliminazione dell'alimento.", 'error', 'message-box-nutrition');
+            }
+        };
+
+        const loadNutrition = async () => {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                return;
+            }
+
+            const colRef = collection(db, collectionPath('nutrition'));
+            onSnapshot(colRef, (querySnapshot) => {
+                const nutritionList = document.getElementById('nutrition-list');
+                nutritionList.innerHTML = '';
+                if (querySnapshot.empty) {
+                    nutritionList.innerHTML = '<p class="text-gray-500 text-center">Nessun alimento aggiunto ancora.</p>';
+                    return;
+                }
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const nutritionItem = document.createElement('div');
+                    nutritionItem.className = 'p-4 bg-[#2a2a2a] rounded-lg mb-2 shadow flex items-center justify-between';
+                    nutritionItem.innerHTML = `
+                        <div>
+                            <h4 class="font-bold text-lg text-white">${data.foodName}</h4>
+                            <p class="text-gray-400 text-sm mb-2">${data.ingredients}</p>
+                            <p class="text-white font-semibold">${data.calories} kcal</p>
+                        </div>
+                        <button onclick="deleteNutrition('${doc.id}')" class="text-red-400 hover:text-red-500 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    `;
+                    nutritionList.appendChild(nutritionItem);
+                });
+            }, (error) => {
+                console.error("Errore nel caricamento degli alimenti: ", error);
+                showMessage("Errore nel caricamento degli alimenti.", 'error', 'message-box-nutrition');
             });
-        }
+        };
+
+        const showMessage = (message, type, boxId) => {
+            const messageBox = document.getElementById(boxId);
+            if (!messageBox) return;
+            messageBox.textContent = message;
+            messageBox.className = `p-3 rounded-lg mt-4 text-center ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600'} text-white transition-opacity duration-300`;
+            messageBox.classList.remove('opacity-0', 'scale-95');
+            messageBox.classList.add('opacity-100', 'scale-100');
+            setTimeout(() => {
+                messageBox.classList.remove('opacity-100', 'scale-100');
+                messageBox.classList.add('opacity-0', 'scale-95');
+            }, 3000);
+        };
+
+        window.onload = initFirebase;
+        window.saveProfileData = saveProfileData;
+        window.addWorkout = addWorkout;
+        window.deleteWorkout = deleteWorkout;
+        window.filterWorkouts = filterWorkouts;
+        window.estimateCalories = estimateCalories;
+        window.deleteNutrition = deleteNutrition;
+    </script>
+
+    <!-- Drawer Navigation -->
+    <div id="drawer" class="drawer transform-gpu p-6 shadow-2xl hidden md:block">
+        <div class="flex justify-end mb-4">
+            <button id="close-drawer-btn" class="text-white text-2xl p-2 rounded-full hover:bg-[#2a2a2a] transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-6">Menu</h2>
+        <a href="#profile" class="flex items-center text-gray-400 hover:text-white mb-4 transition-colors duration-200" onclick="showPage('profile-section')">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+            </svg>
+            <span class="font-medium">Profilo</span>
+        </a>
+        <a href="#workouts" class="flex items-center text-gray-400 hover:text-white mb-4 transition-colors duration-200" onclick="showPage('workouts-section')">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 011.414 0l2.586 2.586A1 1 0 0115 13h-2a1 1 0 110-2h4a1 1 0 001-1V5a1 1 0 00-1-1h-5a1 1 0 110-2h5a3 3 0 013 3v5a3 3 0 01-3 3h-2.586l-2.586 2.586a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414L8 8.414l1.293 1.293a1 1 0 001.414 0z" clip-rule="evenodd" />
+            </svg>
+            <span class="font-medium">Allenamenti</span>
+        </a>
+        <a href="#nutrition" class="flex items-center text-gray-400 hover:text-white mb-4 transition-colors duration-200" onclick="showPage('nutrition-section')">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm6.5 1.5a1 1 0 100 2 1 1 0 000-2zM6 10a1 1 0 112 0 1 1 0 01-2 0zm1-3a1 1 0 100-2 1 1 0 000 2zm6 3a1 1 0 112 0 1 1 0 01-2 0zm-1-3a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+            </svg>
+            <span class="font-medium">Alimentazione</span>
+        </a>
+        <a href="#stats" class="flex items-center text-gray-400 hover:text-white mb-4 transition-colors duration-200" onclick="showPage('stats-section')">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+            </svg>
+            <span class="font-medium">Statistiche</span>
+        </a>
+    </div>
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Main Content -->
+    <div class="min-h-screen flex flex-col items-center p-4 sm:p-8">
+        <header class="w-full max-w-2xl flex items-center justify-between p-4 mb-8">
+            <button id="menu-btn" class="text-white text-2xl p-2 rounded-full hover:bg-[#2a2a2a] transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+            <h1 class="text-4xl font-extrabold text-white tracking-wide">Evo<span class="text-accent">Fit</span></h1>
+            <div class="w-6"></div>
+        </header>
+
+        <div class="w-full max-w-2xl text-center text-sm mb-6">
+            <p id="userIdDisplay" class="text-gray-500">ID Utente: <span id="userIdValue" class="font-mono text-xs">Caricamento...</span></p>
+        </div>
+
+        <!-- Sezioni dell'App -->
         
-        // Inizializza l'interfaccia quando la pagina è caricata
-        document.addEventListener('DOMContentLoaded', () => {
-            renderMealPlan();
-            renderPantry();
-        });
+        <!-- Sezione Profilo -->
+        <main id="profile-section" class="page-section w-full max-w-2xl p-6 sm:p-8 container-main rounded-2xl">
+            <h2 class="text-2xl font-bold mb-8 text-white text-center">Profilo Utente</h2>
+            <div id="message-box-profile" class="opacity-0 scale-95 transform transition-all duration-300"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                <div class="input-group">
+                    <input type="text" id="nome" placeholder=" " required>
+                    <label for="nome">Nome</label>
+                </div>
+                <div class="input-group">
+                    <input type="number" id="eta" placeholder=" " required>
+                    <label for="eta">Età</label>
+                </div>
+                <div class="input-group">
+                    <input type="number" step="0.1" id="peso" placeholder=" " required>
+                    <label for="peso">Peso (kg)</label>
+                </div>
+                <div class="input-group">
+                    <input type="number" step="1" id="altezza" placeholder=" " required>
+                    <label for="altezza">Altezza (cm)</label>
+                </div>
+            </div>
+
+            <div class="input-group w-full mb-6">
+                <select id="sesso" required>
+                    <option value="" disabled selected></option>
+                    <option value="maschio">Maschio</option>
+                    <option value="femmina">Femmina</option>
+                    <option value="altro">Altro</option>
+                </select>
+                <label for="sesso">Sesso</label>
+            </div>
+
+            <div class="input-group w-full mb-6">
+                <input type="text" id="obiettivo" placeholder=" " required>
+                <label for="obiettivo">Obiettivo</label>
+            </div>
+
+            <div class="input-group w-full mb-6">
+                <textarea id="allergie" placeholder=" " rows="2"></textarea>
+                <label for="allergie">Allergie</label>
+            </div>
+
+            <div class="input-group w-full mb-8">
+                <textarea id="note" placeholder=" " rows="3"></textarea>
+                <label for="note">Note aggiuntive</label>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                <button onclick="saveProfileData()" class="btn w-full py-3 rounded-lg font-bold text-white bg-accent">
+                    Salva Dati
+                </button>
+            </div>
+        </main>
+
+        <!-- Sezione Allenamenti -->
+        <main id="workouts-section" class="page-section w-full max-w-2xl p-6 sm:p-8 container-main rounded-2xl">
+            <h2 class="text-2xl font-bold mb-8 text-white text-center">I Miei Allenamenti</h2>
+            <div id="message-box-workouts" class="opacity-0 scale-95 transform transition-all duration-300"></div>
+
+            <div class="mb-6">
+                <div class="input-group mb-4">
+                    <input type="text" id="exercise-name" placeholder=" " required>
+                    <label for="exercise-name">Nome Esercizio</label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div class="input-group">
+                        <input type="number" id="exercise-sets" placeholder=" " required>
+                        <label for="exercise-sets">Serie</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="exercise-reps" placeholder=" " required>
+                        <label for="exercise-reps">Ripetizioni</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="number" step="0.5" id="exercise-weight" placeholder=" " required>
+                        <label for="exercise-weight">Peso (kg)</label>
+                    </div>
+                </div>
+                <button onclick="addWorkout()" class="btn w-full py-3 rounded-lg font-bold text-white bg-accent">
+                    Aggiungi Esercizio
+                </button>
+            </div>
+            
+            <div class="input-group mb-6">
+                <input type="text" id="search-workouts" placeholder=" " oninput="filterWorkouts()">
+                <label for="search-workouts">Cerca esercizio</label>
+            </div>
+
+            <div id="workouts-list" class="space-y-4">
+                <!-- Gli allenamenti verranno caricati qui -->
+            </div>
+        </main>
+
+        <!-- Sezione Alimentazione -->
+        <main id="nutrition-section" class="page-section w-full max-w-2xl p-6 sm:p-8 container-main rounded-2xl">
+            <h2 class="text-2xl font-bold mb-8 text-white text-center">La Mia Alimentazione</h2>
+            <div id="message-box-nutrition" class="opacity-0 scale-95 transform transition-all duration-300"></div>
+            
+            <div class="mb-6">
+                <div class="input-group mb-4">
+                    <input type="text" id="food-name" placeholder=" " required>
+                    <label for="food-name">Nome Piatto</label>
+                </div>
+                <div class="input-group mb-4">
+                    <textarea id="ingredients" placeholder=" " rows="4" required></textarea>
+                    <label for="ingredients">Ingredienti e Grammature (es. Riso 100g, Pollo 200g)</label>
+                </div>
+                <button onclick="estimateCalories()" class="btn w-full py-3 rounded-lg font-bold text-white bg-accent">
+                    Stima Calorie e Salva
+                </button>
+            </div>
+            <div id="nutrition-list" class="space-y-4">
+                <!-- Gli alimenti verranno caricati qui -->
+            </div>
+        </main>
+
+        <!-- Sezione Statistiche -->
+        <main id="stats-section" class="page-section w-full max-w-2xl p-6 sm:p-8 container-main rounded-2xl">
+            <h2 class="text-2xl font-bold text-white text-center mb-4">Le Tue Statistiche</h2>
+            <p class="text-gray-400 text-center">Qui potrai vedere una panoramica generale dei tuoi progressi.</p>
+        </main>
+    </div>
+
+    <script>
+        const drawer = document.getElementById('drawer');
+        const menuBtn = document.getElementById('menu-btn');
+        const closeDrawerBtn = document.getElementById('close-drawer-btn');
+        const overlay = document.getElementById('overlay');
+
+        function showPage(pageId) {
+            const pages = document.querySelectorAll('.page-section');
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            closeDrawer();
+        }
+
+        function openDrawer() {
+            drawer.classList.remove('hidden');
+            drawer.classList.add('open');
+            overlay.classList.add('active');
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('open');
+            drawer.classList.add('hidden');
+            overlay.classList.remove('active');
+        }
+
+        menuBtn.addEventListener('click', openDrawer);
+        closeDrawerBtn.addEventListener('click', closeDrawer);
+        overlay.addEventListener('click', closeDrawer);
     </script>
 </body>
 </html>
